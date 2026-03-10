@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A structured domain-scoring tool for grading causal evidence linking modifiable risk factors to dementia. Part of the DEMON Network consensus framework.">
+<meta name="author" content="DEMON Network">
+<meta property="og:title" content="DEMON Network — Causal Evidence Grading Tool">
+<meta property="og:description" content="Assess whether a putative dementia risk factor is likely causal using a five-domain evidence grading framework.">
+<meta property="og:type" content="website">
+<title>DEMON Network — Causal Evidence Grading Tool</title>
+<style>
+  :root {
+    --navy: #1A237E;
+    --navy-light: #283593;
+    --slate: #37474F;
+    --strong: #2E7D32;
+    --moderate: #E65100;
+    --weak: #C62828;
+    --contradictory: #212121;
+    --strong-bg: #E8F5E9;
+    --moderate-bg: #FFF8E1;
+    --weak-bg: #FFEBEE;
+    --contradictory-bg: #F5F5F5;
+    --bg: #FAFBFD;
+    --card: #FFFFFF;
+    --border: #E0E4EA;
+    --text: #1a1a2e;
+    --text-secondary: #5a6070;
+    --radius: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    color: white;
+    padding: 2rem 2rem 1.5rem;
+    text-align: center;
+  }
+  .header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  .header p { font-size: 0.9rem; opacity: 0.8; }
+
+  /* Progress bar */
+  .progress-container {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .progress-steps {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    max-width: 720px;
+    margin: 0 auto;
+    align-items: center;
+  }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+    border: 2px solid transparent;
+  }
+  .progress-step .step-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    background: #E0E4EA;
+    color: #888;
+  }
+  .progress-step.active .step-dot { background: var(--navy); color: white; }
+  .progress-step.completed .step-dot { background: var(--strong); color: white; }
+  .progress-step.active { color: var(--navy); }
+  .progress-step.completed { color: var(--strong); }
+  .progress-step:not(.active):not(.completed) { color: #999; }
+  .progress-connector { width: 20px; height: 2px; background: #E0E4EA; flex-shrink: 0; }
+  .progress-connector.completed { background: var(--strong); }
+
+  /* Main content */
+  .main { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Risk factor input */
+  .rf-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 1rem;
+  }
+  .rf-input:focus { border-color: var(--navy); }
+
+  /* Domain card */
+  .domain-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .domain-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .domain-header h2 {
+    font-size: 1.1rem;
+    color: var(--navy-light);
+    margin-bottom: 0.25rem;
+  }
+  .domain-header p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .domain-body { padding: 1.25rem; }
+
+  /* Criteria checkboxes */
+  .criterion {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #F8F9FC;
+    border-radius: 8px;
+    border: 1px solid #EAECF2;
+  }
+  .criterion:last-child { margin-bottom: 0; }
+  .criterion-main {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    cursor: pointer;
+  }
+  .criterion-main input[type="checkbox"] {
+    margin-top: 0.25rem;
+    width: 18px; height: 18px;
+    accent-color: var(--navy);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .criterion-label { font-size: 0.88rem; }
+  .criterion-label strong { color: var(--slate); }
+  .criterion-notes {
+    margin-top: 0.5rem;
+    padding-left: 2.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .criterion-notes li { margin-bottom: 0.2rem; }
+  .criterion.checked { background: #EEF2FF; border-color: #C5CAE9; }
+
+  /* Rating display */
+  .rating-section {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .rating-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+  .rating-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .rating-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid;
+    transition: all 0.15s;
+    background: white;
+  }
+  .rating-btn.strong { border-color: var(--strong); color: var(--strong); }
+  .rating-btn.moderate { border-color: var(--moderate); color: var(--moderate); }
+  .rating-btn.weak { border-color: var(--weak); color: var(--weak); }
+  .rating-btn.contradictory { border-color: var(--contradictory); color: var(--contradictory); }
+
+  .rating-btn.strong.selected { background: var(--strong); color: white; }
+  .rating-btn.moderate.selected { background: var(--moderate); color: white; }
+  .rating-btn.weak.selected { background: var(--weak); color: white; }
+  .rating-btn.contradictory.selected { background: var(--contradictory); color: white; }
+
+  .rating-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+  .scoring-hint {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    background: #F8F9FC;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--border);
+    display: none;
+  }
+  .scoring-hint.visible { display: block; }
+
+  .recalc-btn {
+    display: none;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--navy);
+    background: #E8EAF6;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .recalc-btn:hover { background: #C5CAE9; }
+  .recalc-btn.visible { display: inline-block; }
+
+  /* Suggested rating highlight */
+  .rating-btn.suggested {
+    animation: pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .rating-btn.suggested::after {
+    content: '← suggested';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0.7;
+  }
+  .rating-btn.strong.suggested::after { color: var(--strong); }
+  .rating-btn.moderate.suggested::after { color: var(--moderate); }
+  .rating-btn.weak.suggested::after { color: var(--weak); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+    50% { box-shadow: 0 0 0 5px rgba(0,0,0,0.15); }
+  }
+
+  /* Navigation */
+  .nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+  .btn {
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-secondary { background: #E8EAF6; color: var(--navy); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Summary panel */
+  .summary-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .summary-header h2 { font-size: 1.4rem; color: var(--navy); margin-bottom: 0.25rem; }
+  .summary-header .rf-name { font-size: 1.1rem; color: var(--text-secondary); }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .profile-cell {
+    text-align: center;
+    padding: 1rem 0.5rem;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+  }
+  .profile-cell .domain-letter {
+    font-size: 1.4rem;
+    font-weight: 800;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  .profile-cell .domain-name {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+  .profile-cell .rating-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .profile-cell.strong { border-color: var(--strong); }
+  .profile-cell.strong .rating-badge { background: var(--strong-bg); color: var(--strong); }
+  .profile-cell.moderate { border-color: var(--moderate); }
+  .profile-cell.moderate .rating-badge { background: var(--moderate-bg); color: var(--moderate); }
+  .profile-cell.weak { border-color: var(--weak); }
+  .profile-cell.weak .rating-badge { background: var(--weak-bg); color: var(--weak); }
+  .profile-cell.contradictory { border-color: var(--contradictory); }
+  .profile-cell.contradictory .rating-badge { background: var(--contradictory-bg); color: var(--contradictory); }
+
+  /* Grade result */
+  .grade-result {
+    text-align: center;
+    padding: 1.75rem;
+    border-radius: var(--radius);
+    margin-bottom: 2rem;
+    border: 2px solid;
+  }
+  .grade-result .grade-numeral { font-size: 2.5rem; font-weight: 800; }
+  .grade-result .grade-label { font-size: 1.1rem; font-weight: 600; margin-top: 0.25rem; }
+  .grade-result.grade-I { background: #E8F5E9; border-color: #2E7D32; color: #1B5E20; }
+  .grade-result.grade-II { background: #FFF8E1; border-color: #E65100; color: #E65100; }
+  .grade-result.grade-III { background: #FFF3E0; border-color: #E65100; color: #BF360C; }
+  .grade-result.grade-IV { background: #FFEBEE; border-color: #C62828; color: #B71C1C; }
+  .grade-result.grade-DM { background: #F3E5F5; border-color: #6A1B9A; color: #4A148C; }
+
+  /* Summary statement */
+  .summary-statement {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .summary-statement h3 { font-size: 0.95rem; color: var(--navy); margin-bottom: 0.75rem; }
+  .summary-statement p { font-size: 0.88rem; color: var(--text); line-height: 1.7; }
+  .summary-statement .highlight { font-weight: 600; }
+
+  /* Evidence gaps */
+  .gaps-section { margin-bottom: 1.5rem; }
+  .gaps-section h3 { font-size: 0.95rem; color: var(--navy); margin-bottom: 0.5rem; }
+  .gap-item {
+    display: flex; gap: 0.5rem; align-items: flex-start;
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+  }
+  .gap-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.4rem;
+  }
+
+  /* Intro panel */
+  .intro-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .intro-card h3 { font-size: 1rem; color: var(--navy); margin-bottom: 0.75rem; }
+  .rating-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-item .legend-name { font-weight: 600; min-width: 90px; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .progress-step span { display: none; }
+    .profile-grid { grid-template-columns: repeat(3, 1fr); }
+    .rating-legend { grid-template-columns: 1fr; }
+    .rating-options { flex-direction: column; }
+    .rating-btn { text-align: center; }
+  }
+
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<noscript>
+  <div style="max-width:600px; margin:3rem auto; padding:2rem; font-family:sans-serif; text-align:center; border:2px solid #C62828; border-radius:10px; background:#FFEBEE;">
+    <h2 style="color:#C62828; margin-bottom:1rem;">JavaScript Required</h2>
+    <p>This tool requires JavaScript to run. Please enable JavaScript in your browser settings and reload the page.</p>
+  </div>
+</noscript>
+
+<div class="header">
+  <h1>DEMON Network — Causal Evidence Grading Tool</h1>
+  <p>Domain-Scoring Matrix for Dementia Risk Factors</p>
+</div>
+
+<div class="progress-container">
+  <div class="progress-steps" id="progressSteps"></div>
+</div>
+
+<div class="main">
+  <!-- Panel 0: Intro -->
+  <div class="panel active" id="panel-0">
+    <div class="intro-card fade-in">
+      <h3>Risk Factor</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem;">Enter the risk factor you are assessing.</p>
+      <input class="rf-input" id="riskFactorInput" type="text" placeholder="e.g. Hearing loss, Physical inactivity, Hypertension...">
+    </div>
+
+    <div class="intro-card fade-in">
+      <h3>Rating Levels</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.75rem;">Each domain will be rated on four levels:</p>
+      <div class="rating-legend">
+        <div class="legend-item" style="background:var(--strong-bg);">
+          <div class="legend-dot" style="background:var(--strong);"></div>
+          <span class="legend-name" style="color:var(--strong);">Strong</span>
+          <span>Criteria met</span>
+        </div>
+        <div class="legend-item" style="background:var(--moderate-bg);">
+          <div class="legend-dot" style="background:var(--moderate);"></div>
+          <span class="legend-name" style="color:var(--moderate);">Moderate</span>
+          <span>Partially met</span>
+        </div>
+        <div class="legend-item" style="background:var(--weak-bg);">
+          <div class="legend-dot" style="background:var(--weak);"></div>
+          <span class="legend-name" style="color:var(--weak);">Weak</span>
+          <span>Evidence gap</span>
+        </div>
+        <div class="legend-item" style="background:var(--contradictory-bg);">
+          <div class="legend-dot" style="background:var(--contradictory);"></div>
+          <span class="legend-name" style="color:var(--contradictory);">Contradictory</span>
+          <span>Evidence against</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="intro-card fade-in">
+      <h3>How It Works</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.7;">
+        You will assess five evidence domains (A–E) by ticking sub-criteria and selecting a rating for each.
+        The tool will then map your domain profile to an overall evidence grade (I–IV or Disease Marker)
+        and generate a summary statement.
+      </p>
+    </div>
+
+    <div class="nav-bar">
+      <div></div>
+      <button class="btn btn-primary" onclick="startAssessment()">Begin Assessment →</button>
+    </div>
+  </div>
+
+  <!-- Panels 1-5: Domains (generated by JS) -->
+  <div class="panel" id="panel-1"></div>
+  <div class="panel" id="panel-2"></div>
+  <div class="panel" id="panel-3"></div>
+  <div class="panel" id="panel-4"></div>
+  <div class="panel" id="panel-5"></div>
+
+  <!-- Panel 6: Summary -->
+  <div class="panel" id="panel-6"></div>
+</div>
+
+<script>
+const DOMAINS = [
+  {
+    key: 'A', title: 'Domain A — Robustness of Association and Bias Control',
+    description: 'Assess whether the exposure–dementia association is robust, replicated, and not readily explained by confounding.',
+    criteria: [
+      { id: 'A1', label: '<strong>A1. Replication breadth:</strong> Has the association been reported in ≥3 independent cohorts drawn from ≥2 distinct populations or study designs?',
+        notes: ['Count only prospective cohort studies or case-control studies with adequate sample sizes', 'Studies must be independent (not overlapping sub-samples of the same cohort)'] },
+      { id: 'A2', label: '<strong>A2. Effect size consistency:</strong> Do the majority of studies report consistent effect sizes? Where a meta-analysis exists, is heterogeneity low-to-moderate (I² < 50%)?',
+        notes: ['Where formal meta-analysis exists, use the reported I² statistic', 'Where no meta-analysis exists, assess qualitatively whether point estimates cluster'] },
+      { id: 'A3', label: '<strong>A3. Confounding robustness:</strong> Have studies used at least one method beyond standard covariate adjustment to assess residual confounding?',
+        notes: ['Qualifying methods: E-values, negative control outcomes/exposures, propensity scores, sibling/twin designs, instrumental variable approaches', 'Standard multivariable adjustment alone is insufficient for this criterion'] }
+    ],
+    scoring: {
+      strong: 'All three sub-criteria met (A1 + A2 + A3)',
+      moderate: 'Two of three met, OR all three partially met (e.g. replication in 2 cohorts rather than 3)',
+      weak: 'Fewer than 2 adequate cohort studies exist, or no formal assessment of confounding robustness',
+      contradictory: 'Well-powered studies with rigorous methodology produce opposing findings (I² > 75%)'
+    }
+  },
+  {
+    key: 'B', title: 'Domain B — Temporality and Reverse Causation',
+    description: 'Assess whether the temporal direction of the association is established and reverse causation by prodromal dementia has been adequately addressed.',
+    criteria: [
+      { id: 'B1', label: '<strong>B1. Long lag analysis:</strong> Has the association been tested with an exposure–outcome lag of ≥10 years, with the effect persisting?',
+        notes: ['Qualifying approaches: exclusion of early follow-up years with sensitivity analysis, landmark analysis, or explicit lag modelling', 'The 10-year threshold reflects the estimated length of the dementia prodromal period'] },
+      { id: 'B2', label: '<strong>B2. Prodromal case exclusion:</strong> Have studies excluded cases diagnosed within an early window (≥5 years) and shown stable results, or used biomarker-defined preclinical status to exclude prodromal cases?',
+        notes: ['Biomarker-based exclusion (e.g. amyloid PET, p-tau217) is stronger than time-based exclusion alone', 'Stability of results means effect size does not substantially attenuate after exclusion'] },
+      { id: 'B3', label: '<strong>B3. Temporal dose-response:</strong> Is there evidence that greater or longer exposure earlier in the life course predicts higher risk, consistent with a causal direction?',
+        notes: ['e.g. mid-life hypertension carrying greater risk than late-life hypertension', 'If the exposure–risk relationship strengthens closer to diagnosis, this favours reverse causation'] }
+    ],
+    scoring: {
+      strong: 'All three sub-criteria met (B1 + B2 + B3)',
+      moderate: 'Two of three met, OR lag analysis present but with shorter window (5–10 years)',
+      weak: 'No lag analysis or prodromal exclusion attempted in any published study',
+      contradictory: 'Association clearly weakens or reverses with longer follow-up, or prodromal exclusion substantially attenuates the effect'
+    }
+  },
+  {
+    key: 'C', title: 'Domain C — Biological and Mechanistic Coherence',
+    description: 'Assess whether there is a plausible and evidenced biological pathway connecting the exposure to neurodegeneration or cerebrovascular pathology.',
+    criteria: [
+      { id: 'C1', label: '<strong>C1. Identified human pathway:</strong> Is there at least one well-characterised biological pathway linking the exposure to neurodegeneration or cerebrovascular pathology, supported by human evidence?',
+        notes: ['Qualifying evidence: post-mortem neuropathology, neuroimaging (MRI, PET), CSF or blood biomarker studies (e.g. p-tau, NfL, GFAP)', 'The pathway must be specific to dementia-relevant pathology, not a general health mechanism'] },
+      { id: 'C2', label: '<strong>C2. Cross-species or in-vitro corroboration:</strong> Is the proposed mechanism supported by animal models or cell-based studies demonstrating the relevant pathological process?',
+        notes: ['Animal models should demonstrate the specific neurodegenerative or vascular mechanism, not just general cognitive decline', 'In-vitro work (e.g. neuronal cell models, blood-brain barrier models) counts if it demonstrates the proposed mechanistic step'] }
+    ],
+    scoring: {
+      strong: 'Both sub-criteria met (C1 + C2)',
+      moderate: 'One met, OR both present but human evidence is indirect (e.g. pathway extrapolated from cardiovascular disease)',
+      weak: 'No mechanistic investigation conducted for this exposure–dementia relationship',
+      contradictory: 'Mechanistic studies suggest the exposure operates through pathways unrelated to known dementia pathology'
+    }
+  },
+  {
+    key: 'D', title: 'Domain D — Experimental and Quasi-Experimental Evidence',
+    description: 'Assess whether evidence from study designs that mitigate confounding by design supports a causal effect of modifying the exposure on dementia risk.',
+    criteria: [
+      { id: 'D1', label: '<strong>D1. RCT evidence:</strong> Does at least one adequately powered RCT with dementia incidence or a validated cognitive composite as the primary outcome show benefit from modifying the exposure?',
+        notes: ['Underpowered trials or those using non-validated cognitive screening tools alone do not meet this criterion', 'Multi-domain interventions (e.g. FINGER) count only for the specific exposure if the trial design allows attribution'] },
+      { id: 'D2', label: '<strong>D2. Mendelian randomisation evidence:</strong> Do MR analyses using strong instruments (F-statistic > 10) with pleiotropy-robust sensitivity methods support a causal direction?',
+        notes: ['Qualifying sensitivity methods: MR-Egger, weighted median, MR-PRESSO, multivariable MR', 'For some exposures (e.g. TBI, air pollution), valid MR instruments do not exist — rate as Weak, not Contradictory'] },
+      { id: 'D3', label: '<strong>D3. Natural experiment or target trial emulation:</strong> Is there evidence from a natural experiment, policy change, or well-designed target trial emulation supporting the causal claim?',
+        notes: ['Natural experiments: e.g. policy-induced changes in education, air quality regulation, hearing aid subsidies', 'TTE: must specify a clear time zero, eligibility criteria, and treatment strategy'] }
+    ],
+    scoring: {
+      strong: '≥2 of 3 sub-criteria met, with no contradictory findings among them',
+      moderate: '1 of 3 met, with no contradictory findings',
+      weak: 'No RCTs, no MR, and no TTE conducted — this is an evidence gap, not a negative finding',
+      contradictory: '≥1 well-conducted study actively opposes the causal direction (e.g. null RCT, MR pointing opposite)'
+    }
+  },
+  {
+    key: 'E', title: 'Domain E — Triangulation Across Designs',
+    description: 'Assess whether findings converge across methodologically diverse study designs with non-overlapping bias structures.',
+    criteria: [
+      { id: 'E1', label: '<strong>E1. Design diversity:</strong> Have ≥3 methodologically distinct designs been applied to this exposure–dementia relationship?',
+        notes: ['Qualifying distinct designs: prospective cohort, case-control, Mendelian randomisation, natural experiment, target trial emulation, sibling/twin study', 'Two variants of the same design (e.g. two prospective cohorts) count as one design type'] },
+      { id: 'E2', label: '<strong>E2. Convergence across non-overlapping biases:</strong> Do designs with complementary vulnerability structures point in the same direction?',
+        notes: ['The key test: do designs susceptible to different biases agree?', 'e.g. observational (vulnerable to confounding) + MR (vulnerable to pleiotropy) → agreement is informative', 'Two observational studies sharing confounding vulnerability → agreement is less informative'] }
+    ],
+    scoring: {
+      strong: '≥3 designs converge with complementary bias structures',
+      moderate: '2 designs converge, OR ≥3 designs applied but with shared bias vulnerability',
+      weak: 'Only one study design has been applied, or no formal triangulation attempted',
+      contradictory: 'Designs with complementary bias structures produce conflicting results'
+    }
+  }
+];
+
+const DOMAIN_NAMES = ['Association & Bias', 'Temporality', 'Biological Coherence', 'Experimental', 'Triangulation'];
+const STEP_LABELS = ['Start', 'A', 'B', 'C', 'D', 'E', 'Summary'];
+
+let currentPanel = 0;
+let ratings = { A: null, B: null, C: null, D: null, E: null };
+let checks = {};
+
+// Build progress bar
+function buildProgress() {
+  const container = document.getElementById('progressSteps');
+  container.innerHTML = '';
+  STEP_LABELS.forEach((label, i) => {
+    if (i > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'progress-connector' + (i <= currentPanel ? ' completed' : '');
+      container.appendChild(conn);
+    }
+    const step = document.createElement('div');
+    const reachable = i <= getMaxReachable();
+    step.className = 'progress-step' + (i === currentPanel ? ' active' : '') + (i < currentPanel ? ' completed' : '');
+    step.setAttribute('role', 'button');
+    step.setAttribute('tabindex', reachable ? '0' : '-1');
+    step.setAttribute('aria-label', `Step ${i + 1}: ${label}` + (i === currentPanel ? ' (current)' : ''));
+    if (i === currentPanel) step.setAttribute('aria-current', 'step');
+    step.innerHTML = `<div class="step-dot">${i < currentPanel ? '✓' : (i + 1)}</div><span>${label}</span>`;
+    step.onclick = () => { if (reachable) goToPanel(i); };
+    step.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && reachable) { e.preventDefault(); goToPanel(i); } };
+    container.appendChild(step);
+  });
+}
+
+function getMaxReachable() {
+  // Can go back to any completed panel or forward to current+1 if rating is set
+  let max = 0;
+  for (let i = 0; i < 6; i++) {
+    if (i === 0) { max = 1; continue; }
+    if (i <= 5 && ratings[DOMAINS[i-1].key]) max = i + 1;
+    else break;
+  }
+  return Math.min(max, 6);
+}
+
+// Build domain panels
+function buildDomainPanels() {
+  DOMAINS.forEach((domain, idx) => {
+    const panelIdx = idx + 1;
+    const panel = document.getElementById(`panel-${panelIdx}`);
+    let html = `<div class="domain-card fade-in">
+      <div class="domain-header">
+        <h2>${domain.title}</h2>
+        <p>${domain.description}</p>
+      </div>
+      <div class="domain-body">`;
+
+    domain.criteria.forEach(c => {
+      html += `<div class="criterion" id="crit-${c.id}">
+        <label class="criterion-main">
+          <input type="checkbox" id="check-${c.id}" onchange="toggleCriterion('${c.id}')">
+          <span class="criterion-label">${c.label}</span>
+        </label>
+        <ul class="criterion-notes">
+          ${c.notes.map(n => `<li>${n}</li>`).join('')}
+        </ul>
+      </div>`;
+    });
+
+    html += `<div class="rating-section">
+      <div class="rating-label">Domain Rating</div>
+      <div class="rating-options">
+        <button class="rating-btn strong" onclick="setRating('${domain.key}','Strong',this)">Strong</button>
+        <button class="rating-btn moderate" onclick="setRating('${domain.key}','Moderate',this)">Moderate</button>
+        <button class="rating-btn weak" onclick="setRating('${domain.key}','Weak',this)">Weak</button>
+        <button class="rating-btn contradictory" onclick="setRating('${domain.key}','Contradictory',this)">Contradictory</button>
+      </div>
+      <div class="scoring-hint" id="hint-${domain.key}" aria-live="polite"></div>
+      <button class="recalc-btn" id="recalc-${domain.key}" onclick="recalcSuggestion('${domain.key}')">Show suggested rating</button>
+    </div>`;
+
+    html += `</div></div>`;
+
+    // Scoring rules accordion
+    html += `<div class="domain-card fade-in" style="margin-bottom:0.5rem;">
+      <div role="button" tabindex="0" aria-expanded="false" style="padding:0.75rem 1.25rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="var p=this.nextElementSibling; var show=p.style.display==='none'; p.style.display=show?'block':'none'; this.querySelector('.arrow').textContent=show?'▾':'▸'; this.setAttribute('aria-expanded',show)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+        <span style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">Scoring Rules</span>
+        <span class="arrow" style="color:var(--text-secondary);">▸</span>
+      </div>
+      <div style="display:none; padding:0 1.25rem 1rem;">
+        <div style="display:grid; gap:0.5rem;">
+          <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+            <span style="background:var(--strong); color:white; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.72rem; font-weight:700; flex-shrink:0; min-width:80px; text-align:center;">Strong</span>
+            <span style="font-size:0.8rem;">${domain.scoring.strong}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+            <span style="background:var(--moderate); color:white; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.72rem; font-weight:700; flex-shrink:0; min-width:80px; text-align:center;">Moderate</span>
+            <span style="font-size:0.8rem;">${domain.scoring.moderate}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+            <span style="background:var(--weak); color:white; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.72rem; font-weight:700; flex-shrink:0; min-width:80px; text-align:center;">Weak</span>
+            <span style="font-size:0.8rem;">${domain.scoring.weak}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+            <span style="background:var(--contradictory); color:white; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.72rem; font-weight:700; flex-shrink:0; min-width:80px; text-align:center;">Contradictory</span>
+            <span style="font-size:0.8rem;">${domain.scoring.contradictory}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    html += `<div class="nav-bar">
+      <button class="btn btn-secondary" onclick="goToPanel(${panelIdx - 1})">← Back</button>
+      <button class="btn btn-primary" id="next-${panelIdx}" onclick="goToPanel(${panelIdx + 1})" disabled>${panelIdx === 5 ? 'View Summary →' : 'Next Domain →'}</button>
+    </div>`;
+
+    panel.innerHTML = html;
+  });
+}
+
+function toggleCriterion(id) {
+  const el = document.getElementById(`crit-${id}`);
+  const cb = document.getElementById(`check-${id}`);
+  checks[id] = cb.checked;
+  el.classList.toggle('checked', cb.checked);
+
+  // Determine which domain this criterion belongs to and suggest a rating
+  const domainKey = id.charAt(0);
+  suggestRating(domainKey);
+}
+
+function suggestRating(domainKey) {
+  const domain = DOMAINS.find(d => d.key === domainKey);
+  const criteriaIds = domain.criteria.map(c => c.id);
+  const tickedCount = criteriaIds.filter(id => checks[id]).length;
+  const totalCount = criteriaIds.length;
+
+  // Determine suggestion based on ticked count
+  // Domains with 3 criteria (A, B, D): 3=Strong, 2=Moderate, 0-1=Weak
+  // Domains with 2 criteria (C, E): 2=Strong, 1=Moderate, 0=Weak
+  // Contradictory is never auto-suggested — it requires active judgment
+  let suggestion = null;
+  if (totalCount === 3) {
+    if (tickedCount === 3) suggestion = 'strong';
+    else if (tickedCount === 2) suggestion = 'moderate';
+    else if (tickedCount <= 1) suggestion = 'weak';
+  } else if (totalCount === 2) {
+    if (tickedCount === 2) suggestion = 'strong';
+    else if (tickedCount === 1) suggestion = 'moderate';
+    else suggestion = 'weak';
+  }
+
+  // Find the rating buttons for this domain
+  const domainIdx = DOMAINS.findIndex(d => d.key === domainKey);
+  const panelEl = document.getElementById(`panel-${domainIdx + 1}`);
+  const btns = panelEl.querySelectorAll('.rating-btn');
+
+  // Clear all suggestions (but not selections)
+  btns.forEach(b => b.classList.remove('suggested'));
+
+  // If user has already selected a rating, don't override with suggestion
+  if (ratings[domainKey]) return;
+
+  // Apply suggestion
+  if (suggestion) {
+    btns.forEach(b => {
+      if (b.classList.contains(suggestion)) {
+        b.classList.add('suggested');
+      }
+    });
+  }
+
+  // Show/update the hint with the suggested scoring rule
+  const hint = document.getElementById(`hint-${domainKey}`);
+  if (suggestion && !ratings[domainKey]) {
+    const ratingLabel = suggestion.charAt(0).toUpperCase() + suggestion.slice(1);
+    hint.textContent = `Suggested: ${ratingLabel} — ${domain.scoring[suggestion]}`;
+    hint.className = 'scoring-hint visible';
+    hint.style.borderLeftColor = `var(--${suggestion})`;
+  }
+}
+
+function recalcSuggestion(domainKey) {
+  // Temporarily clear the rating so suggestRating can show the suggestion
+  const prevRating = ratings[domainKey];
+  ratings[domainKey] = null;
+
+  // Clear existing selection visually
+  const domainIdx = DOMAINS.findIndex(d => d.key === domainKey);
+  const panelEl = document.getElementById(`panel-${domainIdx + 1}`);
+  panelEl.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+
+  // Disable next button since rating is now unset
+  const nextBtn = document.getElementById(`next-${domainIdx + 1}`);
+  if (nextBtn) nextBtn.disabled = true;
+
+  // Hide the recalc button
+  const recalcBtn = document.getElementById(`recalc-${domainKey}`);
+  if (recalcBtn) recalcBtn.classList.remove('visible');
+
+  // Re-run suggestion
+  suggestRating(domainKey);
+}
+
+function setRating(domainKey, rating, btnEl) {
+  ratings[domainKey] = rating;
+  const parent = btnEl.parentElement;
+  parent.querySelectorAll('.rating-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.classList.remove('suggested');
+  });
+  btnEl.classList.add('selected');
+
+  // Show recalc button if the chosen rating differs from what ticks suggest
+  const domain = DOMAINS.find(d => d.key === domainKey);
+  const criteriaIds = domain.criteria.map(c => c.id);
+  const tickedCount = criteriaIds.filter(id => checks[id]).length;
+  const totalCount = criteriaIds.length;
+  let suggested = null;
+  if (totalCount === 3) {
+    if (tickedCount === 3) suggested = 'Strong';
+    else if (tickedCount === 2) suggested = 'Moderate';
+    else suggested = 'Weak';
+  } else {
+    if (tickedCount === 2) suggested = 'Strong';
+    else if (tickedCount === 1) suggested = 'Moderate';
+    else suggested = 'Weak';
+  }
+  const recalcBtn = document.getElementById(`recalc-${domainKey}`);
+  if (recalcBtn) {
+    recalcBtn.classList.toggle('visible', rating !== suggested);
+  }
+
+  // Enable next button
+  const domainIdx = DOMAINS.findIndex(d => d.key === domainKey);
+  const nextBtn = document.getElementById(`next-${domainIdx + 1}`);
+  if (nextBtn) nextBtn.disabled = false;
+
+  // Show hint
+  const hint = document.getElementById(`hint-${domainKey}`);
+  hint.textContent = domain.scoring[rating.toLowerCase()];
+  hint.className = 'scoring-hint visible';
+  hint.style.borderLeftColor = `var(--${rating.toLowerCase()})`;
+}
+
+function computeGrade() {
+  const vals = Object.values(ratings);
+  const strongCount = vals.filter(v => v === 'Strong').length;
+  const weakCount = vals.filter(v => v === 'Weak').length;
+  const moderateCount = vals.filter(v => v === 'Moderate').length;
+  const contradictoryCount = vals.filter(v => v === 'Contradictory').length;
+  const hasContradictory = contradictoryCount > 0;
+  const bRating = ratings.B;
+  const dRating = ratings.D;
+  const eRating = ratings.E;
+
+  // Disease Marker check first: triggered by Contradictory in B (temporality) or D (experimental)
+  if (bRating === 'Contradictory' || dRating === 'Contradictory') {
+    return { grade: 'DM', label: 'Disease Marker', description: 'Likely Non-Causal or Reverse-Causal' };
+  }
+
+  // Grade I: ≥4 Strong including B and E, no Contradictory
+  if (strongCount >= 4 && bRating === 'Strong' && eRating === 'Strong' && !hasContradictory) {
+    return { grade: 'I', label: 'Grade I', description: 'Strong Evidence for Causality' };
+  }
+
+  // Grade II: all Strong or Moderate, ≥2 Strong, B or D must be Strong, no Contradictory
+  const allStrongOrMod = vals.every(v => v === 'Strong' || v === 'Moderate');
+  const bOrDStrong = bRating === 'Strong' || dRating === 'Strong';
+  if (allStrongOrMod && strongCount >= 2 && bOrDStrong && !hasContradictory) {
+    return { grade: 'II', label: 'Grade II', description: 'Probable Causal Effect' };
+  }
+
+  // Grade IV (checked before III): ≥3 Weak domains
+  if (weakCount >= 3) {
+    return { grade: 'IV', label: 'Grade IV', description: 'Insufficient Evidence' };
+  }
+
+  // Grade III: ≥3 Strong or Moderate, at least 1 Strong, ≤1 Contradictory
+  // Requires ≥1 Strong to prevent all-Moderate profiles from reaching Grade III
+  const strongOrModCount = vals.filter(v => v === 'Strong' || v === 'Moderate').length;
+  if (strongOrModCount >= 3 && strongCount >= 1 && contradictoryCount <= 1) {
+    return { grade: 'III', label: 'Grade III', description: 'Possible Causal Effect' };
+  }
+
+  // Default: Insufficient Evidence
+  // Reached when: all Moderate (no Strong anywhere), or profiles not matching above rules
+  return { grade: 'IV', label: 'Grade IV', description: 'Insufficient Evidence' };
+}
+
+function buildSummary() {
+  const panel = document.getElementById('panel-6');
+  const rf = document.getElementById('riskFactorInput').value || 'Unnamed risk factor';
+  const result = computeGrade();
+
+  const domainKeys = ['A','B','C','D','E'];
+  const gradeClass = result.grade === 'DM' ? 'grade-DM' : `grade-${result.grade}`;
+
+  // Profile grid
+  let profileHtml = '';
+  domainKeys.forEach((k, i) => {
+    const r = ratings[k];
+    const cls = r.toLowerCase();
+    profileHtml += `<div class="profile-cell ${cls}">
+      <span class="domain-letter">${k}</span>
+      <span class="domain-name">${DOMAIN_NAMES[i]}</span>
+      <span class="rating-badge">${r}</span>
+    </div>`;
+  });
+
+  // Evidence gaps
+  let gapsHtml = '';
+  domainKeys.forEach((k, i) => {
+    const r = ratings[k];
+    if (r !== 'Strong') {
+      const color = r === 'Moderate' ? 'var(--moderate)' : r === 'Weak' ? 'var(--weak)' : 'var(--contradictory)';
+      const domain = DOMAINS[i];
+      gapsHtml += `<div class="gap-item">
+        <div class="gap-dot" style="background:${color};"></div>
+        <div><strong>Domain ${k}</strong> (${r}): ${domain.scoring[r.toLowerCase()]}</div>
+      </div>`;
+    }
+  });
+
+  // Summary narrative
+  const profile = domainKeys.map(k => `${k}: ${ratings[k]}`).join(', ');
+  const strongDomains = domainKeys.filter(k => ratings[k] === 'Strong');
+  const nonStrongDomains = domainKeys.filter(k => ratings[k] !== 'Strong');
+
+  let narrative = `<span class="highlight">${rf}</span> was assessed across five evidence domains using the DEMON Network consensus framework. `;
+  narrative += `The domain profile is: ${profile}. `;
+
+  if (result.grade === 'I') {
+    narrative += `This profile meets the criteria for <span class="highlight">Grade I — Strong Evidence for Causality</span>. The evidence base demonstrates robust, replicated associations with adequate reverse causation mitigation, convergent findings across multiple study designs with complementary bias structures, and supporting experimental or quasi-experimental evidence.`;
+  } else if (result.grade === 'II') {
+    narrative += `This profile meets the criteria for <span class="highlight">Grade II — Probable Causal Effect</span>. The evidence is directionally consistent across domains with no contradictory findings, though ${nonStrongDomains.length > 0 ? `domain${nonStrongDomains.length > 1 ? 's' : ''} ${nonStrongDomains.join(', ')} require${nonStrongDomains.length === 1 ? 's' : ''} strengthening` : 'minor gaps remain'} to reach Grade I.`;
+  } else if (result.grade === 'III') {
+    const contradictoryDomains = domainKeys.filter(k => ratings[k] === 'Contradictory');
+    if (contradictoryDomains.length > 0 && strongDomains.length >= 3) {
+      narrative += `This profile meets the criteria for <span class="highlight">Grade III — Possible Causal Effect</span>. Although most domains show strong evidence, contradictory findings in domain${contradictoryDomains.length > 1 ? 's' : ''} ${contradictoryDomains.join(', ')} prevent a higher grade. The contradictory evidence does not involve temporality (B) or experimental designs (D), so Disease Marker classification is not triggered — but the inconsistency warrants investigation.`;
+    } else {
+      narrative += `This profile meets the criteria for <span class="highlight">Grade III — Possible Causal Effect</span>. While some evidence supports a causal relationship, substantive gaps or inconsistencies remain across domains ${nonStrongDomains.join(', ')}. Targeted research addressing these gaps could shift the grade.`;
+    }
+  } else if (result.grade === 'IV') {
+    const allModerate = vals.every(v => v === 'Moderate');
+    if (allModerate) {
+      narrative += `This profile meets the criteria for <span class="highlight">Grade IV — Insufficient Evidence</span>. All five domains are rated Moderate, indicating partial evidence across the board but no domain with strong support. The absence of any Strong domain rating means the evidence has not yet reached the threshold for Grade III. This profile suggests a broad but shallow evidence base — strengthening any single domain to Strong would elevate the grade.`;
+    } else {
+      narrative += `This profile meets the criteria for <span class="highlight">Grade IV — Insufficient Evidence</span>. The current evidence base is too sparse or inconsistent to adequately assess the causal relationship. This represents an evidence gap — not evidence against causality.`;
+    }
+  } else if (result.grade === 'DM') {
+    narrative += `This profile triggers <span class="highlight">Disease Marker</span> classification. The evidence suggests that the association between ${rf} and dementia is more consistent with ${rf} being a consequence of preclinical neuropathology rather than a causal risk factor. This reclassification redirects the factor toward early detection and trial enrichment rather than prevention.`;
+  }
+
+  panel.innerHTML = `
+    <div class="fade-in">
+      <div class="summary-header">
+        <h2>Assessment Summary</h2>
+        <div class="rf-name">${rf}</div>
+      </div>
+
+      <div class="grade-result ${gradeClass}">
+        <div class="grade-numeral">${result.label}</div>
+        <div class="grade-label">${result.description}</div>
+      </div>
+
+      <div class="profile-grid">${profileHtml}</div>
+
+      <div class="summary-statement">
+        <h3>Summary Statement</h3>
+        <p>${narrative}</p>
+      </div>
+
+      ${gapsHtml ? `<div class="gaps-section summary-statement">
+        <h3>Evidence Gaps and Priorities</h3>
+        ${gapsHtml}
+      </div>` : ''}
+
+      <div class="nav-bar">
+        <button class="btn btn-secondary" onclick="goToPanel(5)">← Back to Domain E</button>
+        <button class="btn btn-primary" onclick="resetTool()">Start New Assessment</button>
+      </div>
+    </div>`;
+}
+
+function startAssessment() {
+  const input = document.getElementById('riskFactorInput').value.trim();
+  if (!input) {
+    document.getElementById('riskFactorInput').style.borderColor = '#C62828';
+    document.getElementById('riskFactorInput').focus();
+    return;
+  }
+  goToPanel(1);
+}
+
+function goToPanel(idx) {
+  if (idx === 6) buildSummary();
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${idx}`).classList.add('active');
+  currentPanel = idx;
+  buildProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetTool() {
+  ratings = { A: null, B: null, C: null, D: null, E: null };
+  checks = {};
+  document.getElementById('riskFactorInput').value = '';
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.criterion').forEach(c => c.classList.remove('checked'));
+  document.querySelectorAll('.rating-btn').forEach(b => { b.classList.remove('selected'); b.classList.remove('suggested'); });
+  document.querySelectorAll('.scoring-hint').forEach(h => { h.className = 'scoring-hint'; });
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.getElementById(`next-${i}`);
+    if (btn) btn.disabled = true;
+  }
+  goToPanel(0);
+}
+
+// Initialise
+buildDomainPanels();
+buildProgress();
+</script>
+</body>
+</html>
